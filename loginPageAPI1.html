@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customer Management</title>
+</head>
+<body>
+    <h1>Customer Management</h1>
+
+    <!-- Login Section -->
+    <h2>Login</h2>
+    <form id="loginForm">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
+        <br>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+        <br>
+        <button type="submit">Login</button>
+    </form>
+
+    <!-- Create Customer Section -->
+    <h2>Create Customer</h2>
+    <form id="createCustomerForm">
+        <label for="firstName">First Name:</label>
+        <input type="text" id="firstName" name="firstName" required>
+        <br>
+        <label for="lastName">Last Name:</label>
+        <input type="text" id="lastName" name="lastName" required>
+        <br>
+        <label for="street">Street:</label>
+        <input type="text" id="street" name="street" required>
+        <br>
+        <label for="address">Address:</label>
+        <input type="text" id="address" name="address" required>
+        <br>
+        <label for="city">City:</label>
+        <input type="text" id="city" name="city" required>
+        <br>
+        <label for="state">State:</label>
+        <input type="text" id="state" name="state" required>
+        <br>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+        <br>
+        <label for="phone">Phone:</label>
+        <input type="text" id="phone" name="phone" required>
+        <br>
+        <button type="submit">Create Customer</button>
+    </form>
+
+    <!-- Customer List Section -->
+    <h2>Customer List</h2>
+    <table id="customerList">
+        <tr>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Street</th>
+            <th>Address</th>
+            <th>City</th>
+            <th>State</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Delete</th>
+            <th>Update</th>
+        </tr>
+    </table>
+
+    <script>
+        // Function to handle login form submission
+        document.getElementById("loginForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            try {
+                // Call the authentication API and get the bearer token
+                const response = await fetch("https://qa2.sunbasedata.com/sunbase/portal/api/assignment_auth.jsp", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        login_id: username,
+                        password: password
+                    }),
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const token = data.token; // Assuming the token is returned as 'token' in the response
+                    // Save the token in a variable for future API calls
+                    console.log("Successfully logged in. Bearer token: " + token);
+                } else {
+                    console.error("Login failed. Invalid username or password.");
+                }
+            } catch (error) {
+                console.error("Error during login: ", error);
+            }
+        });
+
+        // Function to handle create customer form submission
+        document.getElementById("createCustomerForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+            const firstName = document.getElementById("firstName").value;
+            const lastName = document.getElementById("lastName").value;
+            const street = document.getElementById("street").value;
+            const address = document.getElementById("address").value;
+            const city = document.getElementById("city").value;
+            const state = document.getElementById("state").value;
+            const email = document.getElementById("email").value;
+            const phone = document.getElementById("phone").value;
+            try {
+                // Call the create customer API and pass the bearer token in the header
+                const response = await fetch("https://qa2.sunbasedata.com/sunbase/portal/api/assignment.jsp?cmd=create", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        first_name: firstName,
+                        last_name: lastName,
+                        street: street,
+                        address: address,
+                        city: city,
+                        state: state,
+                        email: email,
+                        phone: phone
+                    }),
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer YOUR_BEARER_TOKEN" // Replace 'YOUR_BEARER_TOKEN' with the actual token obtained after login
+                    }
+                });
+
+                if (response.ok) {
+                    console.log("Successfully created customer.");
+                    // Call function to refresh the customer list after successful creation
+                    fetchCustomerList();
+                } else if (response.status === 400) {
+                    console.error("Failed to create customer. First Name or Last Name is missing.");
+                } else {
+                    console.error("Failed to create customer.");
+                }
+            } catch (error) {
+                console.error("Error during customer creation: ", error);
+            }
+        });
+
+        // Function to fetch and display the customer list
+        async function fetchCustomerList() {
+            try {
+                // Call the get customer list API and pass the bearer token in the header
+                const response = await fetch("https://qa2.sunbasedata.com/sunbase/portal/api/assignment.jsp?cmd=get_customer_list", {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer YOUR_BEARER_TOKEN" // Replace 'YOUR_BEARER_TOKEN' with the actual token obtained after login
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const customerList = document.getElementById("customerList");
+                    customerList.innerHTML = "<tr><th>First Name</th><th>Last Name</th><th>Street</th><th>Address</th><th>City</th><th>State</th><th>Email</th><th>Phone</th><th>Delete</th><th>Update</th></tr>";
+                    data.forEach(customer => {
+                        customerList.innerHTML += `<tr><td>${customer.first_name}</td><td>${customer.last_name}</td><td>${customer.street}</td><td>${customer.address}</td><td>${customer.city}</td><td>${customer.state}</td><td>${customer.email}</td><td>${customer.phone}</td><td><button onclick="deleteCustomer('${customer.uuid}')">Delete</button></td><td><button onclick="updateCustomer('${customer.uuid}')">Update</button></td></tr>`;
+                    });
+                } else {
+                    console.error("Failed to fetch customer list.");
+                }
+            } catch (error) {
+                console.error("Error during fetching customer list: ", error);
+            }
+        }
+
+        // Function to delete a customer
+        async function deleteCustomer(uuid) {
+            try {
+                // Call the delete customer API and pass the bearer token in the header
+                const response = await fetch(`https://qa2.sunbasedata.com/sunbase/portal/api/assignment.jsp?cmd=delete&uuid=${uuid}`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": "Bearer YOUR_BEARER_TOKEN" // Replace 'YOUR_BEARER_TOKEN' with the actual token obtained after login
+                    }
+                });
+
+                if (response.ok) {
+                    console.log("Successfully deleted customer.");
+                    // Call function to refresh the customer list after successful deletion
+                    fetchCustomerList();
+                } else if (response.status === 400) {
+                    console.error("UUID not found.");
+                } else {
+                    console.error("Error while deleting customer.");
+                }
+            } catch (error) {
+                console.error("Error during customer deletion: ", error);
+            }
+        }
+
+        // Function to update a customer
+        async function updateCustomer(uuid) {
+            const firstName = document.getElementById("firstName").value;
+            const lastName = document.getElementById("lastName").value;
+            const street = document.getElementById("street").value;
+            const address = document.getElementById("address").value;
+            const city = document.getElementById("city").value;
+            const state = document.getElementById("state").value;
+            const email = document.getElementById("email").value;
+            const phone = document.getElementById("phone").value;
+
+            try {
+                // Call the update customer API and pass the bearer token in the header
+                const response = await fetch(`https://qa2.sunbasedata.com/sunbase/portal/api/assignment.jsp?cmd=update&uuid=${uuid}`, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        first_name: firstName,
+                        last_name: lastName,
+                        street: street,
+                        address: address,
+                        city: city,
+                        state: state,
+                        email: email,
+                        phone: phone
+                    }),
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer YOUR_BEARER_TOKEN" // Replace 'YOUR_BEARER_TOKEN' with the actual token obtained after login
+                    }
+                });
+
+                if (response.ok) {
+                    console.log("Successfully updated customer.");
+                    // Call function to refresh the customer list after successful update
+                    fetchCustomerList();
+                } else if (response.status === 400) {
+                    console.error("UUID not found.");
+                } else {
+                    console.error("Error while updating customer.");
+                }
+            } catch (error) {
+                console.error("Error during customer update: ", error);
+            }
+        }
+    </script>
+</body>
+</html>
