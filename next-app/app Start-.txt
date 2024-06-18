@@ -1,9 +1,0 @@
-app Start-
-
-cd next-app
-
-npm run dev
-
-
-
-
