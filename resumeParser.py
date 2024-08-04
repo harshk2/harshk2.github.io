@@ -62,6 +62,7 @@ def parse_resume(file_path):
 # Example usage
 resume_text = """
 Note:-----> Just a generlized text how it should it will look.
+            this is terminal output, json extracted output will be surrunded by curly braces and seperated by slashes.
 Contact Information:
 Harshawardhan Kardile
 VIIT, Pune.
